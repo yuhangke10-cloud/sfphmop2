@@ -1,3 +1,33 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="prototype-version" content="Option2 0.1.1"><title>CRL-CdM System™</title><link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg"><link rel="stylesheet" href="assets/css/style.css"></head>
-<body><main id="stage"><img id="screen" alt="CdM System monitoring dashboard" draggable="false"><button id="theme" aria-label="Switch theme"></button><button id="satellite" aria-label="Satellite"></button><button id="line" aria-label="Train Line"></button><button id="network" aria-label="Train Network"></button></main><script src="assets/js/app.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CRL-CdM System™-Op2</title>
+  <link rel="icon" href="assets/images/favicon.svg">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <section id="passwordGate" aria-label="Password entry">
+    <form id="passwordForm">
+      <label class="sr-only" for="passwordInput">Password</label>
+      <span class="ant-input-affix-wrapper">
+        <input id="passwordInput" class="ant-input" type="password" placeholder="Password" autocomplete="off" autofocus>
+        <button id="passwordVisibility" type="button" aria-label="Show password">◉</button>
+      </span>
+    </form>
+  </section>
+  <main>
+    <img id="screen" alt="CRL CdM System monitoring prototype">
+    <button id="sidebar" aria-label="Toggle sidebar"></button>
+    <button id="monitorTab" aria-label="Open Network Line monitoring"></button>
+    <button id="eventTab" aria-label="Open Event Details"></button>
+    <button id="mapPrev" aria-label="Previous map view"></button>
+    <button id="mapNext" aria-label="Next map view"></button>
+    <button id="faultEvent" aria-label="Open first fault event details"></button>
+    <button id="language" aria-label="Switch language"></button>
+    <button id="theme" aria-label="Switch light or dark mode"></button>
+  </main>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
