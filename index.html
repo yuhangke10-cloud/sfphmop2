@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="prototype-version" content="Option2 0.3.2">
   <title>CRL-CdM System™-Op2</title>
   <link rel="icon" href="assets/images/favicon.svg">
   <link rel="stylesheet" href="assets/css/style.css">
@@ -18,15 +19,18 @@
     </form>
   </section>
   <main>
-    <img id="screen" alt="CRL CdM System monitoring prototype">
+    <img id="screen" alt="CRL CdM System monitoring prototype" decoding="async" draggable="false">
     <button id="sidebar" aria-label="Toggle sidebar"></button>
     <button id="monitorTab" aria-label="Open Network Line monitoring"></button>
     <button id="eventTab" aria-label="Open Event Details"></button>
+    <button id="parameterTab" aria-label="Open Parameter Query"></button>
     <button id="mapPrev" aria-label="Previous map view"></button>
     <button id="mapNext" aria-label="Next map view"></button>
     <button id="faultEvent" aria-label="Open first fault event details"></button>
     <button id="language" aria-label="Switch language"></button>
     <button id="theme" aria-label="Switch light or dark mode"></button>
+    <button id="parameterQuery" aria-label="Query parameters"></button>
+    <button id="parameterBack" aria-label="Back to filters"></button>
   </main>
   <script src="assets/js/app.js"></script>
 </body>
