@@ -4,7 +4,7 @@
   const DESIGN_WIDTH = 2560;
   const DESIGN_HEIGHT = 1440;
   const PASSWORD = '18817962338';
-  const screen = document.getElementById('screen');
+  let screen = document.getElementById('screen');
   const passwordGate = document.getElementById('passwordGate');
   const passwordForm = document.getElementById('passwordForm');
   const passwordInput = document.getElementById('passwordInput');
@@ -23,9 +23,72 @@
     sidebarOpen: true
   };
   const mapViews = ['satellite', 'network', 'operation'];
-  let assetsReady = false;
-  let preloadPromise = null;
-  const preloadCache = [];
+  const cache = new Map();
+  const CACHE_LIMIT = 3;
+  let renderVersion = 0;
+  let warmTimer;
+  let warming = false;
+  let desiredPath = '';
+  let activeLoads = 0;
+  const loadQueue = [];
+  function pumpLoads() {
+    while (activeLoads < 2 && loadQueue.length) {
+      const job = loadQueue.shift();
+      activeLoads++;
+      job.entry.promise.finally(() => { activeLoads--; pumpLoads(); }).catch(() => {});
+      job.entry.image.src = job.path;
+    }
+  }
+
+  function trimCache() {
+    for (const [path, entry] of cache) {
+      if (cache.size <= CACHE_LIMIT) break;
+      if (entry.ready && path !== desiredPath && entry.image !== screen) cache.delete(path);
+    }
+  }
+
+  function loadImage(path, priority = 'high') {
+    if (cache.has(path)) {
+      const entry = cache.get(path);
+      entry.image.fetchPriority = priority;
+      cache.delete(path); cache.set(path, entry);
+      return entry.promise;
+    }
+    const image = new Image();
+    image.decoding = 'async'; image.fetchPriority = priority;
+    const entry = {image, ready:false};
+    entry.promise = new Promise((resolve,reject) => {
+      image.onload = async () => {
+        try { await image.decode(); entry.ready = true; resolve(image); }
+        catch (error) { cache.delete(path); reject(error); }
+        trimCache();
+      };
+      image.onerror = () => { cache.delete(path); reject(new Error('Image load failed')); };
+    });
+    cache.set(path, entry);
+    const job = {path, entry};
+    if (priority === 'high') loadQueue.unshift(job); else loadQueue.push(job);
+    pumpLoads();
+    return entry.promise;
+  }
+
+  function scheduleWarmup() {
+    clearTimeout(warmTimer);
+    warmTimer = setTimeout(async () => {
+      if (warming || document.hidden) return;
+      warming = true;
+      const path = imagePath();
+      const candidates = state.page === 'monitor'
+        ? mapViews.filter(view => view !== state.mapView).map(view => path.replace(`-${state.mapView}-`, `-${view}-`))
+        : [path.replace(state.theme === 'light' ? '-light-' : '-dark-', state.theme === 'light' ? '-dark-' : '-light-')];
+      try {
+        for (const candidate of candidates) {
+          if (path !== imagePath() || document.hidden) break;
+          await loadImage(candidate, 'low').catch(() => {});
+        }
+      } finally { warming = false; trimCache(); }
+    }, 400);
+  }
 
   function imagePath() {
     const sidebar = state.sidebarOpen ? 'unfold' : 'fold';
@@ -49,21 +112,6 @@
     return paths;
   }
 
-  function preloadAllImages() {
-    if (preloadPromise) return preloadPromise;
-    const paths = allImagePaths();
-    preloadPromise = Promise.all(paths.map((path, index) => new Promise(resolve => {
-      const image = new Image();
-      image.decoding = 'async';
-      image.fetchPriority = index === 0 ? 'high' : 'low';
-      preloadCache.push(image);
-      const done = () => resolve();
-      image.onload = done;
-      image.onerror = done;
-      image.src = path;
-    }))).then(() => { assetsReady = true; });
-    return preloadPromise;
-  }
 
   function bounds() {
     const tabStart = state.sidebarOpen ? 216 : 70;
@@ -108,8 +156,21 @@
     });
   }
 
-  function render() {
-    screen.src = imagePath();
+  async function render() {
+    const version = ++renderVersion;
+    desiredPath = imagePath();
+    let image;
+    try { image = await loadImage(desiredPath); }
+    catch (error) {
+      if (!passwordGate.classList.contains('is-hidden')) throw error;
+      return false;
+    }
+    if (version !== renderVersion) return false;
+    if (image !== screen) {
+      image.id = 'screen'; image.alt = screen.alt; image.draggable = false;
+      image.style.cssText = screen.style.cssText;
+      screen.replaceWith(image); screen = image;
+    }
     document.documentElement.dataset.theme = state.theme;
     const monitoring = state.page === 'monitor';
     setControlActive('mapPrev', monitoring);
@@ -118,6 +179,8 @@
     setControlActive('parameterQuery', state.page === 'parameter' && state.parameterView === 'main');
     setControlActive('parameterBack', state.page === 'parameter' && state.parameterView === 'result');
     layout();
+    trimCache(); scheduleWarmup();
+    return true;
   }
 
   function switchPage(page) {
@@ -134,10 +197,13 @@
     }
     passwordInput.disabled = true;
     passwordInput.value = '';
-    passwordInput.placeholder = assetsReady ? 'Ready' : 'Loading…';
-    await preloadAllImages();
-    render();
-    await screen.decode().catch(() => {});
+    passwordInput.placeholder = 'Loading…';
+    try { await render(); }
+    catch (_) {
+      passwordInput.disabled = false;
+      passwordInput.placeholder = '加载失败，请输入密码重试';
+      passwordInput.focus(); return;
+    }
     passwordGate.classList.add('is-hidden');
     passwordGate.setAttribute('aria-hidden', 'true');
   });
@@ -173,5 +239,6 @@
   addEventListener('resize', layout);
   document.documentElement.dataset.theme = state.theme;
   layout();
-  preloadAllImages();
+  desiredPath = imagePath();
+  loadImage(desiredPath).then(scheduleWarmup).catch(() => {});
 })();
